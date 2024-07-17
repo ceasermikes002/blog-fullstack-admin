@@ -1,129 +1,112 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { FormEvent } from "react";
-import slugify from "slugify";
+import React, { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
+import axios from 'axios';
+import { useDropzone } from 'react-dropzone';
+import { Button } from '@/components/ui/button';
 
-export default function CreatePost() {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [slug, setSlug] = useState("");
-  const [featuredImage, setFeaturedImage] = useState("");
-  const [authorId, setAuthorId] = useState("");
-  const [authorImage, setAuthorImage] = useState("");
-  const [authorName, setAuthorName] = useState("");
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
+const CreatePost = () => {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [featuredImage, setFeaturedImage] = useState<File | null>(null);
+  const [authorImage, setAuthorImage] = useState('');
+  const [authorName, setAuthorName] = useState('');
   const router = useRouter();
 
-  useEffect(() => {
-    if (title) {
-      const formattedSlug = slugify(title, { lower: true });
-      setSlug(formattedSlug);
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles && acceptedFiles[0]) {
+      setFeaturedImage(acceptedFiles[0]);
     }
-  }, [title]);
+  }, []);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept:{
+    'image/png': ['.png'],
+    'image/jpg': ['.jpg'],
+    'image/jpeg': ['.jpeg'],
+    }, });
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    formData.append('slug', title.toLowerCase().replace(/ /g, '-'));
+    if (featuredImage) {
+      formData.append('featuredImage', featuredImage);
+    }
+    formData.append('authorImage', authorImage);
+    formData.append('authorName', authorName);
 
     try {
-      const response = await fetch("/api/create", {
-        method: "POST",
+      const response = await axios.post('/api/create', formData, {
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'multipart/form-data',
         },
-        body: JSON.stringify({
-          title,
-          content,
-          slug,
-          featuredImage,
-          authorId,
-          authorImage,
-          authorName,
-        }),
       });
 
-      if (response.ok) {
-        router.push("/"); // Redirect to homepage on success
-      } else {
-        console.error("Failed to create post:", await response.text());
+      if (response.status === 200) {
+        router.push('/new');
       }
     } catch (error) {
-      console.error("Error creating post:", error);
+      console.error('Error creating post:', error);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-center">
-      <div className="max-w-lg p-8 bg-white shadow-lg rounded-lg">
-        <h1 className="text-2xl font-bold mb-6">Create a New Post</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-1">Title:</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-            />
+    <div>
+      <h1>Create New Post</h1>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Title</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Content</label>
+          <ReactQuill value={content} onChange={setContent} />
+        </div>
+        <div>
+          <label>Featured Image</label>
+          <div {...getRootProps()} style={{ border: '1px solid #ccc', padding: '20px', textAlign: 'center' }}>
+            <input {...getInputProps()} />
+            {
+              isDragActive ?
+                <p>Drop the files here ...</p> :
+                <p>Drag &apos;n&apos; drop some files here, or click to select files</p>
+            }
           </div>
-          <div>
-            <label className="block mb-1">Content:</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block mb-1">Slug:</label>
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block mb-1">Featured Image URL:</label>
-            <input
-              type="text"
-              value={featuredImage}
-              onChange={(e) => setFeaturedImage(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block mb-1">Author Image URL:</label>
-            <input
-              type="text"
-              value={authorImage}
-              onChange={(e) => setAuthorImage(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block mb-1">Author Name:</label>
-            <input
-              type="text"
-              value={authorName}
-              onChange={(e) => setAuthorName(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none"
-            disabled={!title} // Disable button if title is empty
-          >
-            Create Post
-          </button>
-        </form>
-      </div>
+          {featuredImage && <p>Selected file: {featuredImage.name}</p>}
+        </div>
+        <div>
+          <label>Author Image URL</label>
+          <input
+            type="text"
+            value={authorImage}
+            onChange={(e) => setAuthorImage(e.target.value)}
+          />
+        </div>
+        <div>
+          <label>Author Name</label>
+          <input
+            type="text"
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            required
+          />
+        </div>
+        <Button type="submit">Create Post</Button>
+      </form>
     </div>
   );
-}
+};
+
+export default CreatePost;
