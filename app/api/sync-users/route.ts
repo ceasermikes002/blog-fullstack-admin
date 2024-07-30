@@ -1,52 +1,78 @@
-import { NextApiRequest, NextApiResponse } from 'next'
-import { PrismaClient } from '@prisma/client'
-import { cors } from '@/lib/cors';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (cors(req, res)) {
-    return;
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { eventType, userData } = req.body;
-
+export async function POST(req: Request) {
   try {
-    if (eventType === 'user.created') {
-      await prisma.user.create({
-        data: {
-          id: userData.id,
-          email: userData.email,
-          firstName: userData.first_name,
-          lastName: userData.last_name,
-          profileImage: userData.profile_image,
-        },
-      });
-    } else if (eventType === 'user.updated') {
-      await prisma.user.update({
-        where: { id: userData.id },
-        data: {
-          email: userData.email,
-          firstName: userData.first_name,
-          lastName: userData.last_name,
-          profileImage: userData.profile_image,
-        },
-      });
-    } else if (eventType === 'user.deleted') {
-      await prisma.user.delete({
-        where: { id: userData.id },
-      });
-    } else {
-      return res.status(400).json({ error: 'Unknown event type' });
+    const { eventType, userData, userId } = await req.json();
+
+    console.log('Received request:', req);
+    console.log('Received userData:', userData);
+    console.log('Received userId:', userId);
+
+    // Validate the incoming data
+    if (!userData || !userId) {
+      console.error('Validation Error: userData or userId is missing');
+      return new Response(JSON.stringify({ error: 'userData and userId are required' }), { status: 400 });
     }
 
-    res.status(200).json({ message: 'User synced successfully' });
+    if (eventType === 'user.deleted') {
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (existingUser) {
+        await prisma.user.delete({
+          where: { id: userId },
+        });
+      } else {
+        console.warn(`User with ID ${userId} does not exist. No deletion performed.`);
+      }
+    } else if (eventType === 'user.created' || eventType === 'user.updated') {
+      if (!userData.email_addresses || !userData.email_addresses.length || !userData.email_addresses[0]?.email_address) {
+        console.error('Validation Error: User email is required');
+        return new Response(JSON.stringify({ error: 'User email is required' }), { status: 400 });
+      }
+
+      const email = userData.email_addresses[0].email_address;
+
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (existingUser) {
+        // If user exists, update it
+        await prisma.user.update({
+          where: { email },
+          data: {
+            id: userId,
+            email,
+            firstName: userData.first_name ?? null,
+            lastName: userData.last_name ?? null,
+            profileImage: userData.image_url ?? null,
+          },
+        });
+      } else {
+        // If user does not exist, create a new user
+        await prisma.user.create({
+          data: {
+            id: userId,
+            email,
+            firstName: userData.first_name ?? null,
+            lastName: userData.last_name ?? null,
+            profileImage: userData.image_url ?? null,
+          },
+        });
+      }
+    } else {
+      console.error('Validation Error: Unknown event type');
+      return new Response(JSON.stringify({ error: 'Unknown event type' }), { status: 400 });
+    }
+
+    return new Response(JSON.stringify({ message: 'User synced successfully' }), { status: 200 });
   } catch (error) {
-    console.error('Error syncing user:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    const errorMessage = (error as Error).message || 'Internal server error';
+    console.error('Error syncing user:', errorMessage);
+    return new Response(JSON.stringify({ error: `Internal server error: ${errorMessage}` }), { status: 500 });
   }
 }

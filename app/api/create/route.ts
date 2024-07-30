@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { promises as fs } from 'fs';
-import { join, dirname, relative } from 'path';
+import { join } from 'path';
 
 const prisma = new PrismaClient();
 
@@ -19,6 +19,8 @@ export async function POST(req: Request) {
     const slug = formData.get('slug') as string;
     const authorImage = formData.get('authorImage') as string;
     const authorName = formData.get('authorName') as string;
+    const category = formData.get('category') as string;
+    const description = formData.get('description') as string;
     const featuredImageFile = formData.get('featuredImage') as File;
 
     let featuredImage = '';
@@ -48,6 +50,8 @@ export async function POST(req: Request) {
         draft: false,
         authorImage,
         authorName,
+        category,
+        description,
       },
     });
 

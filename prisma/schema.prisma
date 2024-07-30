@@ -13,18 +13,47 @@ model User {
   firstName    String?
   lastName     String?
   profileImage String?
-  isAdmin      Boolean  @default(false)  // New field for admin status
+  createdAt    DateTime @default(now())
+  isAdmin      Boolean  @default(false)
+  archived     Boolean  @default(false) // Add this line
+  likes        Like[]
+  Favorite Favorite[]
 }
 
 model Post {
   id            String   @id @default(uuid())
   title         String
   content       String
+  category      String?
+  description   String?
   slug          String   @unique
   featuredImage String
   draft         Boolean
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  authorImage   String?  // Optional: Author image URL
+  authorImage   String?  
   authorName    String
+  likes         Like[]
+  favorites     Favorite[] // Added relation to Favorite model
+}
+
+model Like {
+  id        String @id @default(uuid())
+  postId    String
+  post      Post   @relation(fields: [postId], references: [id])
+  userId    String
+  user      User   @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  @@unique([postId, userId])  // Composite unique constraint
+}
+
+model Favorite { // Added Favorite model
+  id        String @id @default(uuid())
+  postId    String
+  post      Post   @relation(fields: [postId], references: [id])
+  userId    String
+  user      User   @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+   @@unique([postId, userId])  // Composite unique constraint
+
 }

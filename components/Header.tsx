@@ -1,17 +1,21 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { SignedIn, UserButton } from "@clerk/nextjs";
-
+import { SignedIn, SignedOut, UserButton, useClerk } from "@clerk/nextjs";
 
 export default function Header() {
+  const { signOut } = useClerk();
+
   return (
-    <header className=" flex justify-between p-5">
-      <div className="">HEADER COMPONENT</div>
+    <header className="flex justify-between p-5">
+      <Link href={'/'} className="">HEADER COMPONENT</Link>
       <div className="flex gap-4">
-        <Link href={'/sign-up'}><Button>Get Started</Button></Link>
-        <Link href={'/sign-in'}><Button>Login</Button></Link>
+        <SignedOut>
+          <Link href={'/sign-up'}><Button>Get Started</Button></Link>
+          <Link href={'/sign-in'}><Button>Login</Button></Link>
+        </SignedOut>
         <SignedIn>
+        <Button onClick={() => signOut()}>Sign Out</Button>
           <UserButton />
         </SignedIn>
       </div>

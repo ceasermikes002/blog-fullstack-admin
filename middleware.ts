@@ -7,6 +7,7 @@ import {
     '/dashboard(.*)',
     '/about(.*)',
     '/new(.*)',
+    '/create(.*)',
   ]);
   
   export default clerkMiddleware((auth, req) => {

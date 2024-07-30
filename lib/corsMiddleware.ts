@@ -5,4 +5,4 @@ export function setCorsHeaders(response:any) {
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     return response;
   }
-  
+
