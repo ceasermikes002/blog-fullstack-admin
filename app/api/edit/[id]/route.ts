@@ -5,13 +5,7 @@ import { join } from 'path';
 
 const prisma = new PrismaClient();
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-export async function PUT(req: Request) {
+export default async function PUT(req: Request) {
   try {
     const formData = await req.formData();
     const id = formData.get('id') as string;
