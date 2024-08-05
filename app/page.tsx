@@ -34,8 +34,7 @@ export default function Home() {
           <Header />
     <section className="p-5 mt-9 items-center justify-center flex flex-col min-h-96">
       <h2 className="m-10" suppressHydrationWarning>
-        {greeting} {user ? user.firstName : "Guest"}, welcome to the admin panel for Diella&apos;s blog. Your current session is {sessionId}
-      </h2>
+        {greeting} {user ? user.firstName : "Guest"}, welcome to the admin panel for Diella&apos;s blog</h2>
       <div className="flex gap-4">
         <Link href={'/create'}>
           <Button>Create new post</Button>
